@@ -1,0 +1,7 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ProtectOurBrand mark">
+  <rect width="96" height="96" rx="18" fill="#05070F"/>
+  <path d="M48 11L76 21V44C76 62.5 64.6 77.4 48 86C31.4 77.4 20 62.5 20 44V21L48 11Z" fill="#0F172A" stroke="#22D3EE" stroke-width="4"/>
+  <path d="M35 46C35 38.8 40.8 33 48 33C55.2 33 61 38.8 61 46C61 53.2 55.2 59 48 59C40.8 59 35 53.2 35 46Z" stroke="#F59E0B" stroke-width="4"/>
+  <path d="M58 56L68 66" stroke="#22D3EE" stroke-width="5" stroke-linecap="round"/>
+  <path d="M31 25H39M57 25H65M28 38H35M61 38H68M31 65H39M57 65H65" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+</svg>

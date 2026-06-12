@@ -1,0 +1,44 @@
+<svg width="720" height="360" viewBox="0 0 720 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Threat monitoring map">
+  <rect width="720" height="360" rx="8" fill="#05070F"/>
+  <path d="M0 0H720V360H0V0Z" fill="url(#grid)"/>
+  <circle cx="360" cy="180" r="72" fill="#0F172A" stroke="#22D3EE" stroke-width="3"/>
+  <text x="360" y="174" text-anchor="middle" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">Brand</text>
+  <text x="360" y="198" text-anchor="middle" fill="#94A3B8" font-family="Inter, Arial, sans-serif" font-size="13">evidence hub</text>
+  <g fill="#101827" stroke="#334155" stroke-width="2">
+    <rect x="74" y="52" width="150" height="58" rx="8"/>
+    <rect x="486" y="52" width="150" height="58" rx="8"/>
+    <rect x="74" y="250" width="150" height="58" rx="8"/>
+    <rect x="486" y="250" width="150" height="58" rx="8"/>
+    <rect x="38" y="154" width="142" height="58" rx="8"/>
+    <rect x="540" y="154" width="142" height="58" rx="8"/>
+  </g>
+  <g stroke="#22D3EE" stroke-width="2" stroke-dasharray="6 8">
+    <path d="M224 81L296 144"/>
+    <path d="M486 81L424 144"/>
+    <path d="M224 279L296 216"/>
+    <path d="M486 279L424 216"/>
+    <path d="M180 183H288"/>
+    <path d="M432 183H540"/>
+  </g>
+  <g font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#E2E8F0">
+    <text x="149" y="86" text-anchor="middle">Web</text>
+    <text x="561" y="86" text-anchor="middle">Social</text>
+    <text x="149" y="284" text-anchor="middle">Search</text>
+    <text x="561" y="284" text-anchor="middle">Domains</text>
+    <text x="109" y="188" text-anchor="middle">Marketplaces</text>
+    <text x="611" y="188" text-anchor="middle">Ads</text>
+  </g>
+  <g fill="#F59E0B">
+    <circle cx="224" cy="81" r="5"/>
+    <circle cx="486" cy="81" r="5"/>
+    <circle cx="224" cy="279" r="5"/>
+    <circle cx="486" cy="279" r="5"/>
+    <circle cx="180" cy="183" r="5"/>
+    <circle cx="540" cy="183" r="5"/>
+  </g>
+  <defs>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" stroke="#94A3B8" stroke-opacity="0.08"/>
+    </pattern>
+  </defs>
+</svg>

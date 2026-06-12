@@ -1,0 +1,21 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#05070F"/>
+  <path d="M0 0H1200V630H0V0Z" fill="url(#grid)"/>
+  <circle cx="980" cy="90" r="310" fill="#22D3EE" fill-opacity="0.16"/>
+  <circle cx="1030" cy="520" r="250" fill="#F59E0B" fill-opacity="0.12"/>
+  <g transform="translate(72 64)">
+    <path d="M52 0L104 18V62C104 96 82 123 52 138C22 123 0 96 0 62V18L52 0Z" fill="#0F172A" stroke="#22D3EE" stroke-width="6"/>
+    <circle cx="52" cy="62" r="22" stroke="#F59E0B" stroke-width="6"/>
+    <path d="M70 80L92 102" stroke="#22D3EE" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="72" y="285" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="850">Brand Protection +</text>
+  <text x="72" y="370" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="850">DMCA Monitoring</text>
+  <text x="72" y="455" fill="#CBD5E1" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="650">Detect. Document. Remove.</text>
+  <rect x="72" y="520" width="250" height="8" rx="4" fill="#22D3EE"/>
+  <rect x="342" y="520" width="140" height="8" rx="4" fill="#F59E0B"/>
+  <defs>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" stroke="#94A3B8" stroke-opacity="0.13"/>
+    </pattern>
+  </defs>
+</svg>

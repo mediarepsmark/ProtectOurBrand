@@ -1,0 +1,10 @@
+<svg width="380" height="96" viewBox="0 0 380 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ProtectOurBrand logo">
+  <rect width="380" height="96" rx="18" fill="#05070F"/>
+  <g>
+    <path d="M48 11L76 21V44C76 62.5 64.6 77.4 48 86C31.4 77.4 20 62.5 20 44V21L48 11Z" fill="#0F172A" stroke="#22D3EE" stroke-width="4"/>
+    <path d="M35 46C35 38.8 40.8 33 48 33C55.2 33 61 38.8 61 46C61 53.2 55.2 59 48 59C40.8 59 35 53.2 35 46Z" stroke="#F59E0B" stroke-width="4"/>
+    <path d="M58 56L68 66" stroke="#22D3EE" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="104" y="54" fill="#F8FAFC" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800">ProtectOurBrand</text>
+  <text x="106" y="73" fill="#94A3B8" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600">Detect. Document. Enforce.</text>
+</svg>

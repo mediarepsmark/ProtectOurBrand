@@ -1,0 +1,34 @@
+<svg width="960" height="360" viewBox="0 0 960 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Process diagram">
+  <rect width="960" height="360" rx="8" fill="#05070F"/>
+  <path d="M80 180H860" stroke="#334155" stroke-width="4"/>
+  <g font-family="Inter, Arial, sans-serif">
+    <g transform="translate(50 120)">
+      <circle cx="40" cy="60" r="36" fill="#22D3EE"/><text x="40" y="66" text-anchor="middle" fill="#05070F" font-size="18" font-weight="800">1</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Intake</text>
+    </g>
+    <g transform="translate(180 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#22D3EE" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">2</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Detection</text>
+    </g>
+    <g transform="translate(310 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#F59E0B" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">3</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Review</text>
+    </g>
+    <g transform="translate(440 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#22D3EE" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">4</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Evidence</text>
+    </g>
+    <g transform="translate(570 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#F59E0B" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">5</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Enforce</text>
+    </g>
+    <g transform="translate(700 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#22D3EE" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">6</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Report</text>
+    </g>
+    <g transform="translate(830 120)">
+      <circle cx="40" cy="60" r="36" fill="#101827" stroke="#F59E0B" stroke-width="3"/><text x="40" y="66" text-anchor="middle" fill="#F8FAFC" font-size="18" font-weight="800">7</text>
+      <text x="40" y="124" text-anchor="middle" fill="#F8FAFC" font-size="14" font-weight="700">Monitor</text>
+    </g>
+  </g>
+</svg>
