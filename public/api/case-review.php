@@ -259,6 +259,33 @@ try {
     respond_error();
 }
 
+// ── EngageBay sync ────────────────────────────────────────────────────────
+require_once __DIR__ . '/../ajax/engagebay.php';
+
+try {
+    send_case_review_to_engagebay([
+        'name' => $name,
+        'company' => $company,
+        'email' => $email,
+        'phone' => $phone,
+        'website' => $website,
+        'brand_names' => $brandNames,
+        'social_handles' => $socialHandles,
+        'marketplaces' => $marketplaces,
+        'known_urls' => $knownUrls,
+        'main_concern' => $mainConcern,
+        'budget' => $budget,
+        'urgency' => $urgency,
+        'preferred_review_date' => $preferredReviewDate,
+        'preferred_review_window' => $preferredReviewWindow,
+        'message' => $message,
+        'consent' => $consent,
+        'source_page' => $sourcePage,
+    ]);
+} catch (Throwable $exception) {
+    error_log('ProtectOurBrand EngageBay sync failed: ' . $exception->getMessage());
+}
+
 // ── PHPMailer ─────────────────────────────────────────────────────────────
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
