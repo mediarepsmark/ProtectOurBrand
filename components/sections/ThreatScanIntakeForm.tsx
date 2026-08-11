@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarCheck, CalendarDays, CheckCircle2, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarCheck, CircleCheck, Mail } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { SchedulingPicker } from "@/components/sections/SchedulingPicker";
 import { formDisclaimer } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +23,6 @@ type IntakeData = {
   urgency: string;
   message: string;
   consent: boolean;
-  reviewWindow: string;
 };
 
 const initialData: IntakeData = {
@@ -39,11 +39,8 @@ const initialData: IntakeData = {
   budget: "",
   urgency: "",
   message: "",
-  consent: false,
-  reviewWindow: ""
+  consent: false
 };
-
-const reviewDays = [9, 10, 11, 12];
 
 const steps = [
   {
@@ -68,8 +65,8 @@ const steps = [
   },
   {
     title: "Pick a review window",
-    description: "Choose the date range that works best for your free 15-minute 360° threat scan, then submit.",
-    fields: ["reviewWindow"] as Array<keyof IntakeData>
+    description: "Choose your preferred review date and time, then submit.",
+    fields: [] as Array<keyof IntakeData>
   }
 ];
 
@@ -87,8 +84,7 @@ const fieldLabels: Record<keyof IntakeData, string> = {
   budget: "Monthly budget range",
   urgency: "Urgency",
   message: "Message",
-  consent: "Consent",
-  reviewWindow: "Preferred review window"
+  consent: "Consent"
 };
 
 export function ThreatScanIntakeForm() {
@@ -96,16 +92,23 @@ export function ThreatScanIntakeForm() {
   const [data, setData] = useState<IntakeData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof IntakeData, string>>>({});
   const [status, setStatus] = useState<"idle" | "submitted" | "missing" | "error">("idle");
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "error">("idle");
 
   const current = steps[currentStep];
   const completion = useMemo(() => Math.round(((currentStep + 1) / steps.length) * 100), [currentStep]);
 
   useEffect(() => {
     const intakeStatus = new URLSearchParams(window.location.search).get("intake");
-    if (intakeStatus === "submitted" || intakeStatus === "missing" || intakeStatus === "error") {
+    if (intakeStatus === "submitted" || intakeStatus === "missing") {
       setStatus(intakeStatus);
     }
   }, []);
+
+  useEffect(() => {
+    if (status === "submitted") {
+      document.getElementById("brand-threat-scan")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [status]);
 
   function updateField(field: keyof IntakeData, value: string | boolean) {
     setData((previous) => ({ ...previous, [field]: value }));
@@ -121,11 +124,6 @@ export function ThreatScanIntakeForm() {
         continue;
       }
 
-      if (field === "reviewWindow") {
-        if (!data.reviewWindow) nextErrors.reviewWindow = "Please pick a review window before submitting.";
-        continue;
-      }
-
       if (typeof data[field] === "string" && data[field].trim().length === 0) {
         nextErrors[field] = `${fieldLabels[field]} is required.`;
       }
@@ -135,37 +133,52 @@ export function ThreatScanIntakeForm() {
       nextErrors.email = "Enter a valid email address.";
     }
 
-    if (stepIndex === 0 && data.website && !/^https?:\/\/.+\..+/.test(data.website.trim())) {
-      nextErrors.website = "Enter a valid URL starting with https:// or http://";
-    }
-
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   function goNext() {
-    if (!validateStep(currentStep)) return;
-    setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
+    if (validateStep(currentStep)) setCurrentStep((step) => Math.min(step + 1, steps.length - 1));
   }
 
   function goBack() {
     setCurrentStep((step) => Math.max(step - 1, 0));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    // Validate every step so we never send an incomplete payload to PHP.
-    for (let i = 0; i < steps.length; i++) {
-      if (!validateStep(i)) {
-        event.preventDefault();
-        setCurrentStep(i);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!validateStep(currentStep)) return;
+
+    setSubmitState("submitting");
+    const form = event.currentTarget;
+    const body = new FormData(form);
+    const preferredReviewDate = (document.querySelector("[name='preferredReviewDate']") as HTMLInputElement | null)?.value;
+    const preferredReviewWindow = (document.querySelector("[name='preferredReviewWindow']") as HTMLInputElement | null)?.value;
+    body.set("_ajax", "1");
+    if (preferredReviewDate) body.set("preferredReviewDate", preferredReviewDate);
+    if (preferredReviewWindow) body.set("preferredReviewWindow", preferredReviewWindow);
+
+    try {
+      const response = await fetch(form.action, { method: "POST", body });
+      const result = await response.json();
+      if (!response.ok || !result.ok) {
+        setSubmitState("error");
         return;
       }
+      if (result.redirect) {
+        window.location.href = result.redirect;
+        return;
+      }
+      setStatus("submitted");
+      setSubmitState("idle");
+    } catch {
+      setSubmitState("error");
     }
   }
 
   if (status === "submitted") {
     return (
-      <div id="brand-threat-scan" className="mt-6 rounded-md border border-cyan/30 bg-cyan/10 p-6">
+      <div id="brand-threat-scan" className="mt-6 scroll-mt-28 rounded-md border border-cyan/30 bg-cyan/10 p-6">
         <div className="flex items-start gap-4">
           <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-blue shadow-sm">
             <CalendarCheck aria-hidden="true" className="size-6" />
@@ -173,7 +186,7 @@ export function ThreatScanIntakeForm() {
           <div>
             <h3 className="text-xl font-bold text-ink">Your threat scan intake was received.</h3>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              The details were submitted to support@protectourbrand.com. We will review the scope and follow up with the scheduling link or next best intake step.
+              The details were submitted to support@protectourbrand.com. If you selected a preferred review date or time window, it was included with your intake.
             </p>
             <a
               href="mailto:support@protectourbrand.com"
@@ -188,28 +201,9 @@ export function ThreatScanIntakeForm() {
     );
   }
 
-  const isFinalStep = currentStep === steps.length - 1;
-
   return (
-    <>
-      <div className="-mx-6 -mt-6 flex flex-wrap items-center justify-center gap-8 border-b border-slateLine bg-slate-50 px-6 py-4 text-sm font-semibold sm:-mx-8 sm:-mt-8">
-        <span className={cn("inline-flex items-center gap-2", isFinalStep ? "text-slate-500" : "text-ink")}>
-          <span className={cn("size-2.5 rounded-full", isFinalStep ? "bg-slate-300" : "bg-ink")} />
-          Fill out the form
-        </span>
-        <span className={cn("inline-flex items-center gap-2", isFinalStep ? "text-ink" : "text-slate-500")}>
-          <span className={cn("size-2.5 rounded-full", isFinalStep ? "bg-ink" : "bg-slate-300")} />
-          Book your review
-        </span>
-      </div>
-      <form id="brand-threat-scan" action="/api/case-review.php" method="post" className="mt-6 grid gap-6" aria-describedby="brand-scan-disclaimer" onSubmit={handleSubmit}>
+    <form id="brand-threat-scan" action="/api/brand-threat-scan.php" method="post" className="mt-6 grid scroll-mt-28 gap-6" aria-describedby="brand-scan-disclaimer" onSubmit={handleSubmit}>
       <input type="hidden" name="source_page" value="ProtectOurBrand Brand Threat Scan" />
-
-      {status === "error" ? (
-        <div className="rounded-md border border-amber/40 bg-amber/10 p-4 text-sm font-semibold leading-6 text-slate-800">
-          We could not save your request right now. Please try again or email support@protectourbrand.com.
-        </div>
-      ) : null}
 
       {status === "missing" ? (
         <div className="rounded-md border border-amber/40 bg-amber/10 p-4 text-sm font-semibold leading-6 text-slate-800">
@@ -276,66 +270,20 @@ export function ThreatScanIntakeForm() {
       </div>
 
       <div className={cn("gap-5", currentStep === 4 ? "grid" : "hidden")}>
-        <div className="rounded-md border border-slateLine bg-slate-50 p-5">
-          <p className="text-sm font-bold text-ink">Final check</p>
-          <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 sm:grid-cols-2">
-            <li><span className="font-semibold text-slate-800">Name:</span> {data.name || "—"}</li>
-            <li><span className="font-semibold text-slate-800">Company:</span> {data.company || "—"}</li>
-            <li><span className="font-semibold text-slate-800">Email:</span> {data.email || "—"}</li>
-            <li><span className="font-semibold text-slate-800">Main concern:</span> {data.mainConcern || "—"}</li>
-          </ul>
-        </div>
-
-        <div className="rounded-md border border-slateLine bg-white p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-cyan">Scheduling preview</p>
-              <h4 className="mt-1 text-lg font-bold text-ink">June 2026</h4>
-            </div>
-            <CalendarDays aria-hidden="true" className="size-7 text-blue" />
-          </div>
-          <div className="mt-6 grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-          <div className="mt-3 grid grid-cols-7 gap-2 text-center text-sm text-slate-500">
-            {Array.from({ length: 30 }, (_, index) => index + 1).map((day) => {
-              const label = `June ${day}, 2026`;
-              const isSelectable = reviewDays.includes(day);
-              const isSelected = data.reviewWindow === label;
-              return (
-                <button
-                  type="button"
-                  key={day}
-                  disabled={!isSelectable}
-                  onClick={() => updateField("reviewWindow", label)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "rounded-md px-2 py-3 font-semibold transition",
-                    !isSelectable && "cursor-default text-slate-400",
-                    isSelectable && !isSelected && "bg-slate-100 text-slate-700 hover:bg-cyan/20",
-                    isSelected && "bg-blue text-white"
-                  )}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-5 rounded-md border border-slateLine bg-slate-50 p-4 text-center text-sm font-semibold leading-6 text-slate-700">
-            {data.reviewWindow ? `Selected: ${data.reviewWindow}` : "Choose a highlighted date for your free review call."}
-          </p>
-          {errors.reviewWindow ? <span className="mt-2 block text-sm text-amber">{errors.reviewWindow}</span> : null}
-          <input type="hidden" name="review_window" value={data.reviewWindow} />
-        </div>
+        <SchedulingPicker formId="brand-threat-scan" />
       </div>
 
       <p id="brand-scan-disclaimer" className="text-sm leading-6 text-slate-600">{formDisclaimer}</p>
 
+      {submitState === "error" ? (
+        <div className="rounded-md border border-amber/40 bg-amber/10 p-4 text-sm font-semibold leading-6 text-slate-800">
+          The intake could not be submitted. Please try again or email support@protectourbrand.com with your details.
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-3 sm:flex-row">
         {currentStep > 0 ? (
-          <Button type="button" variant="secondary" onClick={goBack}>
+          <Button type="button" variant="secondary" onClick={goBack} disabled={submitState === "submitting"}>
             <ArrowLeft aria-hidden="true" className="size-4" />
             Back
           </Button>
@@ -346,14 +294,13 @@ export function ThreatScanIntakeForm() {
             <ArrowRight aria-hidden="true" className="size-4" />
           </Button>
         ) : (
-          <Button type="submit" className="sm:ml-auto">
-            Submit Intake & Continue to Scheduling
-            <CheckCircle2 aria-hidden="true" className="size-4" />
+          <Button type="submit" className="sm:ml-auto" disabled={submitState === "submitting"}>
+            {submitState === "submitting" ? "Submitting Intake..." : "Submit Intake & Request Review Time"}
+            <CircleCheck aria-hidden="true" className="size-4" />
           </Button>
         )}
       </div>
     </form>
-    </>
   );
 }
 
