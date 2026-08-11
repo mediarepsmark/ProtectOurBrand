@@ -3,15 +3,52 @@ declare(strict_types=1);
 
 $to = 'anuj21srivastava21@gmail.com';
 
+$isAjax = false;
+
 function redirect_to(string $url): void
 {
     header('Location: ' . $url, true, 303);
     exit;
 }
 
+function json_response(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode($payload);
+    exit;
+}
+
 function build_redirect(string $status): string
 {
     return '/case-review/?intake=' . rawurlencode($status) . '#brand-threat-scan';
+}
+
+function respond_missing(): void
+{
+    global $isAjax;
+    if ($isAjax) {
+        json_response(['ok' => false, 'error' => 'missing'], 422);
+    }
+    redirect_to(build_redirect('missing'));
+}
+
+function respond_error(): void
+{
+    global $isAjax;
+    if ($isAjax) {
+        json_response(['ok' => false, 'error' => 'server_error'], 500);
+    }
+    redirect_to(build_redirect('error'));
+}
+
+function respond_submitted(): void
+{
+    global $isAjax;
+    if ($isAjax) {
+        json_response(['ok' => true, 'redirect' => build_redirect('submitted')]);
+    }
+    redirect_to(build_redirect('submitted'));
 }
 
 function request_value(string $key, bool $preserveNewlines = false): string
@@ -76,17 +113,14 @@ function client_ip(): string
     return '';
 }
 
-function missing_response(): void
-{
-    redirect_to(build_redirect('missing'));
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     header('Allow: POST');
     echo 'Method Not Allowed';
     exit;
 }
+
+$isAjax = request_value('_ajax') === '1';
 
 $name = request_value('name');
 $company = request_value('company');
@@ -103,6 +137,8 @@ $urgency = request_value('urgency');
 $message = request_value('message', true);
 $consent = request_value('consent');
 $sourcePage = request_value('source_page');
+$preferredReviewDate = nullable_request_value('preferredReviewDate');
+$preferredReviewWindow = nullable_request_value('preferredReviewWindow');
 $userAgent = truncate_value($_SERVER['HTTP_USER_AGENT'] ?? '', 255) ?? '';
 $ipAddress = truncate_value(client_ip(), 45) ?? '';
 
@@ -175,7 +211,7 @@ if ($urgency !== '' && !in_array($urgency, $allowedUrgencies, true)) {
 }
 
 if ($missing !== []) {
-    missing_response();
+    respond_missing();
 }
 
 if (request_value('_test') === '1') {
@@ -192,9 +228,9 @@ try {
 
     $statement = $pdo->prepare(
         'INSERT INTO case_reviews
-            (`name`, `company`, `email`, `phone`, `website`, `brand_names`, `social_handles`, `marketplaces`, `known_urls`, `main_concern`, `budget`, `urgency`, `message`, `status`, `ip_address`, `user_agent`, `source_page`)
+            (`name`, `company`, `email`, `phone`, `website`, `brand_names`, `social_handles`, `marketplaces`, `known_urls`, `main_concern`, `budget`, `urgency`, `preferred_review_date`, `preferred_review_window`, `message`, `status`, `ip_address`, `user_agent`, `source_page`)
          VALUES
-            (:name, :company, :email, :phone, :website, :brand_names, :social_handles, :marketplaces, :known_urls, :main_concern, :budget, :urgency, :message, :status, :ip_address, :user_agent, :source_page)'
+            (:name, :company, :email, :phone, :website, :brand_names, :social_handles, :marketplaces, :known_urls, :main_concern, :budget, :urgency, :preferred_review_date, :preferred_review_window, :message, :status, :ip_address, :user_agent, :source_page)'
     );
 
     $statement->execute([
@@ -210,6 +246,8 @@ try {
         ':main_concern' => truncate_value($mainConcern, 80),
         ':budget' => truncate_value($budget, 40),
         ':urgency' => truncate_value($urgency, 40),
+        ':preferred_review_date' => truncate_value($preferredReviewDate, 40),
+        ':preferred_review_window' => truncate_value($preferredReviewWindow, 80),
         ':message' => $message,
         ':status' => 'new',
         ':ip_address' => $ipAddress,
@@ -218,7 +256,7 @@ try {
     ]);
 } catch (Throwable $exception) {
     error_log('ProtectOurBrand case review insert failed: ' . $exception->getMessage());
-    redirect_to(build_redirect('error'));
+    respond_error();
 }
 
 // ── PHPMailer ─────────────────────────────────────────────────────────────
@@ -242,6 +280,8 @@ function mailer_config(): array
     ];
 }
 
+$preferredReviewSummary = trim(($preferredReviewDate ?? '') . ($preferredReviewWindow ? ' · ' . $preferredReviewWindow : ''));
+
 $subject = 'ProtectOurBrand Case Review - ' . truncate_value($company !== '' ? $company : $name, 80);
 
 $fields = [
@@ -257,6 +297,8 @@ $fields = [
     'Main concern'              => $mainConcern,
     'Monthly budget range'      => $budget,
     'Urgency'                   => $urgency,
+    'Preferred review date'     => $preferredReviewDate ?? '',
+    'Preferred review window'   => $preferredReviewWindow ?? '',
     'Message'                   => $message,
     'Consent'                   => $consent,
     'Source page'               => $sourcePage,
@@ -332,4 +374,91 @@ try {
     error_log('ProtectOurBrand case review email failed: ' . $mail->ErrorInfo);
 }
 
-redirect_to(build_redirect('submitted'));
+// ── Customer confirmation email ───────────────────────────────────────────
+$firstName    = explode(' ', trim($name))[0];
+$safeFirst    = htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8');
+$safeWhen     = htmlspecialchars($preferredReviewSummary !== '' ? $preferredReviewSummary : 'a time you selected', ENT_QUOTES, 'UTF-8');
+
+$customerHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>'
+    . '<body style="font-family:system-ui,sans-serif;background:#f3f4f6;margin:0;padding:24px">'
+    . '<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">'
+
+    // Header
+    . '<div style="background:#0f172a;padding:28px 32px">'
+    . '<h1 style="margin:0;font-size:20px;color:#fff;letter-spacing:-0.3px">ProtectOurBrand</h1>'
+    . '<p style="margin:4px 0 0;font-size:13px;color:#94a3b8">Brand Protection &amp; Enforcement</p>'
+    . '</div>'
+
+    // Body
+    . '<div style="padding:32px">'
+    . '<p style="margin:0 0 8px;font-size:16px;color:#111827">Hi ' . $safeFirst . ',</p>'
+    . '<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#374151">'
+    . 'Thank you for submitting your Brand Threat Scan intake. We have received your details and our team will review the scope of your case.'
+    . '</p>'
+
+    . '<p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#111827">What happens next</p>'
+    . '<ol style="margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.8;color:#374151">'
+    . '<li>Our team reviews your intake and identifies active brand abuse signals.</li>'
+    . '<li>We prepare a tailored threat summary and recommended enforcement path.</li>'
+    . '<li>We meet with you for a <strong>free 15-minute 360° Brand Threat Scan</strong> — no obligation.</li>'
+    . '</ol>'
+
+    . '<div style="margin:0 0 20px;padding:16px 20px;background:#f0fdff;border:1px solid #99e6f2;border-radius:8px">'
+    . '<p style="margin:0;font-size:13px;font-weight:600;color:#0e7490;text-transform:uppercase;letter-spacing:0.06em">Your preferred review time</p>'
+    . '<p style="margin:6px 0 0;font-size:15px;font-weight:600;color:#111827">' . $safeWhen . '</p>'
+    . '<p style="margin:6px 0 0;font-size:13px;line-height:1.5;color:#374151">This is a preferred window, not a confirmed booking. Our team will follow up to confirm the final time.</p>'
+    . '</div>'
+
+    . '<p style="margin:0;font-size:13px;line-height:1.6;color:#6b7280">'
+    . 'Questions in the meantime? Just reply to this email or reach us at support@protectourbrand.com.'
+    . '</p>'
+    . '</div>'
+
+    // Footer
+    . '<div style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af">'
+    . 'ProtectOurBrand &nbsp;·&nbsp; support@protectourbrand.com'
+    . '<br>You are receiving this because you submitted a brand threat scan intake.'
+    . '</div>'
+
+    . '</div></body></html>';
+
+$customerText = "Hi {$firstName},\n\n"
+    . "Thank you for submitting your Brand Threat Scan intake. We have received your details and our team will review the scope of your case.\n\n"
+    . "WHAT HAPPENS NEXT\n"
+    . "1. Our team reviews your intake and identifies active brand abuse signals.\n"
+    . "2. We prepare a tailored threat summary and recommended enforcement path.\n"
+    . "3. We meet with you for a free 15-minute 360° Brand Threat Scan — no obligation.\n\n"
+    . "Your preferred review time: {$preferredReviewSummary}\n"
+    . "This is a preferred window, not a confirmed booking. Our team will follow up to confirm the final time.\n\n"
+    . "Best regards,\nThe ProtectOurBrand Team\nsupport@protectourbrand.com";
+
+if ($email !== '') {
+    $customerMail = new PHPMailer(true);
+    try {
+        if ($cfg['host'] !== '') {
+            $customerMail->isSMTP();
+            $customerMail->Host       = $cfg['host'];
+            $customerMail->Port       = $cfg['port'];
+            $customerMail->SMTPAuth   = true;
+            $customerMail->Username   = $cfg['username'];
+            $customerMail->Password   = $cfg['password'];
+            $customerMail->SMTPSecure = $cfg['port'] === 465 ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $customerMail->isSendmail();
+        }
+
+        $customerMail->CharSet = 'UTF-8';
+        $customerMail->setFrom($cfg['from'], $cfg['from_name']);
+        $customerMail->addAddress($email, $name);
+        $customerMail->Subject  = 'Your ProtectOurBrand Threat Scan — We Received Your Request';
+        $customerMail->isHTML(true);
+        $customerMail->Body     = $customerHtml;
+        $customerMail->AltBody  = $customerText;
+
+        $customerMail->send();
+    } catch (MailerException $e) {
+        error_log('ProtectOurBrand customer confirmation email failed: ' . $customerMail->ErrorInfo);
+    }
+}
+
+respond_submitted();
