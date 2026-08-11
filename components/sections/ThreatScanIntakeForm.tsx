@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarCheck, CheckCircle2, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarCheck, CalendarDays, CheckCircle2, Mail } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +22,7 @@ type IntakeData = {
   urgency: string;
   message: string;
   consent: boolean;
+  reviewWindow: string;
 };
 
 const initialData: IntakeData = {
@@ -38,8 +39,11 @@ const initialData: IntakeData = {
   budget: "",
   urgency: "",
   message: "",
-  consent: false
+  consent: false,
+  reviewWindow: ""
 };
+
+const reviewDays = [9, 10, 11, 12];
 
 const steps = [
   {
@@ -61,6 +65,11 @@ const steps = [
     title: "Scope and booking",
     description: "Set urgency and submit the intake. We will use this to prepare the review and scheduling path.",
     fields: ["budget", "urgency", "message", "consent"] as Array<keyof IntakeData>
+  },
+  {
+    title: "Pick a review window",
+    description: "Choose the date range that works best for your free 15-minute 360° threat scan, then submit.",
+    fields: ["reviewWindow"] as Array<keyof IntakeData>
   }
 ];
 
@@ -78,7 +87,8 @@ const fieldLabels: Record<keyof IntakeData, string> = {
   budget: "Monthly budget range",
   urgency: "Urgency",
   message: "Message",
-  consent: "Consent"
+  consent: "Consent",
+  reviewWindow: "Preferred review window"
 };
 
 export function ThreatScanIntakeForm() {
@@ -108,6 +118,11 @@ export function ThreatScanIntakeForm() {
     for (const field of steps[stepIndex].fields) {
       if (field === "consent") {
         if (!data.consent) nextErrors.consent = "Please confirm before continuing.";
+        continue;
+      }
+
+      if (field === "reviewWindow") {
+        if (!data.reviewWindow) nextErrors.reviewWindow = "Please pick a review window before submitting.";
         continue;
       }
 
@@ -173,8 +188,21 @@ export function ThreatScanIntakeForm() {
     );
   }
 
+  const isFinalStep = currentStep === steps.length - 1;
+
   return (
-    <form id="brand-threat-scan" action="/api/case-review.php" method="post" className="mt-6 grid gap-6" aria-describedby="brand-scan-disclaimer" onSubmit={handleSubmit}>
+    <>
+      <div className="-mx-6 -mt-6 flex flex-wrap items-center justify-center gap-8 border-b border-slateLine bg-slate-50 px-6 py-4 text-sm font-semibold sm:-mx-8 sm:-mt-8">
+        <span className={cn("inline-flex items-center gap-2", isFinalStep ? "text-slate-500" : "text-ink")}>
+          <span className={cn("size-2.5 rounded-full", isFinalStep ? "bg-slate-300" : "bg-ink")} />
+          Fill out the form
+        </span>
+        <span className={cn("inline-flex items-center gap-2", isFinalStep ? "text-ink" : "text-slate-500")}>
+          <span className={cn("size-2.5 rounded-full", isFinalStep ? "bg-ink" : "bg-slate-300")} />
+          Book your review
+        </span>
+      </div>
+      <form id="brand-threat-scan" action="/api/case-review.php" method="post" className="mt-6 grid gap-6" aria-describedby="brand-scan-disclaimer" onSubmit={handleSubmit}>
       <input type="hidden" name="source_page" value="ProtectOurBrand Brand Threat Scan" />
 
       {status === "error" ? (
@@ -247,6 +275,62 @@ export function ThreatScanIntakeForm() {
         </label>
       </div>
 
+      <div className={cn("gap-5", currentStep === 4 ? "grid" : "hidden")}>
+        <div className="rounded-md border border-slateLine bg-slate-50 p-5">
+          <p className="text-sm font-bold text-ink">Final check</p>
+          <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 sm:grid-cols-2">
+            <li><span className="font-semibold text-slate-800">Name:</span> {data.name || "—"}</li>
+            <li><span className="font-semibold text-slate-800">Company:</span> {data.company || "—"}</li>
+            <li><span className="font-semibold text-slate-800">Email:</span> {data.email || "—"}</li>
+            <li><span className="font-semibold text-slate-800">Main concern:</span> {data.mainConcern || "—"}</li>
+          </ul>
+        </div>
+
+        <div className="rounded-md border border-slateLine bg-white p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-cyan">Scheduling preview</p>
+              <h4 className="mt-1 text-lg font-bold text-ink">June 2026</h4>
+            </div>
+            <CalendarDays aria-hidden="true" className="size-7 text-blue" />
+          </div>
+          <div className="mt-6 grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-7 gap-2 text-center text-sm text-slate-500">
+            {Array.from({ length: 30 }, (_, index) => index + 1).map((day) => {
+              const label = `June ${day}, 2026`;
+              const isSelectable = reviewDays.includes(day);
+              const isSelected = data.reviewWindow === label;
+              return (
+                <button
+                  type="button"
+                  key={day}
+                  disabled={!isSelectable}
+                  onClick={() => updateField("reviewWindow", label)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "rounded-md px-2 py-3 font-semibold transition",
+                    !isSelectable && "cursor-default text-slate-400",
+                    isSelectable && !isSelected && "bg-slate-100 text-slate-700 hover:bg-cyan/20",
+                    isSelected && "bg-blue text-white"
+                  )}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-5 rounded-md border border-slateLine bg-slate-50 p-4 text-center text-sm font-semibold leading-6 text-slate-700">
+            {data.reviewWindow ? `Selected: ${data.reviewWindow}` : "Choose a highlighted date for your free review call."}
+          </p>
+          {errors.reviewWindow ? <span className="mt-2 block text-sm text-amber">{errors.reviewWindow}</span> : null}
+          <input type="hidden" name="review_window" value={data.reviewWindow} />
+        </div>
+      </div>
+
       <p id="brand-scan-disclaimer" className="text-sm leading-6 text-slate-600">{formDisclaimer}</p>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -269,6 +353,7 @@ export function ThreatScanIntakeForm() {
         )}
       </div>
     </form>
+    </>
   );
 }
 
