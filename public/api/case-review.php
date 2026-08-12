@@ -387,6 +387,8 @@ try {
     $mail->CharSet  = 'UTF-8';
     $mail->setFrom($cfg['from'], $cfg['from_name']);
     $mail->addAddress($to);
+    $mail->addCC('alex@dmcaforce.com');
+    $mail->addCC('Julija@dmcaforce.com');
     $mail->addReplyTo(
         truncate_value($email, 190) ?? $cfg['from'],
         truncate_value($name, 120) ?? ''
