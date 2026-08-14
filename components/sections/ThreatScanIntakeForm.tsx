@@ -231,7 +231,7 @@ export function ThreatScanIntakeForm() {
           <Field label="Name" id="name" value={data.name} error={errors.name} onChange={(value) => updateField("name", value)} autoComplete="name" />
           <Field label="Company" id="company" value={data.company} error={errors.company} onChange={(value) => updateField("company", value)} autoComplete="organization" />
           <Field label="Email" id="email" type="email" value={data.email} error={errors.email} onChange={(value) => updateField("email", value)} autoComplete="email" />
-          <Field label="Website" id="website" type="url" value={data.website} error={errors.website} onChange={(value) => updateField("website", value)} autoComplete="url" />
+          <Field label="Website" id="website" value={data.website} error={errors.website} onChange={(value) => updateField("website", value)} autoComplete="url" />
         </div>
         <Field label="Phone" id="phone" type="tel" value={data.phone} error={errors.phone} onChange={(value) => updateField("phone", value)} autoComplete="tel" required={false} />
       </div>
