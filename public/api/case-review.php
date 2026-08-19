@@ -307,7 +307,103 @@ function mailer_config(): array
     ];
 }
 
+// ── Calendar invite (.ics) ──────────────────────────────────────────────
+function ics_escape_text(string $value): string
+{
+    $value = str_replace(['\\', "\n", "\r", ',', ';'], ['\\\\', '\\n', '', '\\,', '\\;'], $value);
+    return $value;
+}
+
+function ics_fold_line(string $line): string
+{
+    // RFC 5545: lines longer than 75 octets should be folded with CRLF + a leading space.
+    $chunks = [];
+    while (strlen($line) > 75) {
+        $chunks[] = substr($line, 0, 75);
+        $line = ' ' . substr($line, 75);
+    }
+    $chunks[] = $line;
+    return implode("\r\n", $chunks);
+}
+
+function build_review_ics(
+    ?string $dateKey,
+    ?string $windowLabel,
+    string $organizerEmail,
+    string $organizerName,
+    string $attendeeEmail,
+    string $attendeeName,
+    string $summary,
+    string $description
+): ?string {
+    if ($dateKey === null || $dateKey === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateKey)) {
+        return null;
+    }
+
+    $windows = [
+        'Morning, 9 AM - 12 PM PT' => ['09:00', '12:00'],
+        'Afternoon, 12 PM - 3 PM PT' => ['12:00', '15:00'],
+        'Late day, 3 PM - 5 PM PT' => ['15:00', '17:00'],
+    ];
+    [$startTime, $endTime] = $windows[$windowLabel ?? ''] ?? ['09:00', '10:00'];
+
+    try {
+        $pacific = new DateTimeZone('America/Los_Angeles');
+        $start = new DateTime($dateKey . ' ' . $startTime, $pacific);
+        $end = new DateTime($dateKey . ' ' . $endTime, $pacific);
+    } catch (Throwable $e) {
+        return null;
+    }
+
+    $utc = new DateTimeZone('UTC');
+    $start->setTimezone($utc);
+    $end->setTimezone($utc);
+
+    $uid = bin2hex(random_bytes(16)) . '@protectourbrand.com';
+    $dtstamp = gmdate('Ymd\THis\Z');
+    $dtstart = $start->format('Ymd\THis\Z');
+    $dtend = $end->format('Ymd\THis\Z');
+
+    $lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//ProtectOurBrand//Case Review//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:REQUEST',
+        'BEGIN:VEVENT',
+        'UID:' . $uid,
+        'DTSTAMP:' . $dtstamp,
+        'DTSTART:' . $dtstart,
+        'DTEND:' . $dtend,
+        'SUMMARY:' . ics_escape_text($summary),
+        'DESCRIPTION:' . ics_escape_text($description),
+        'ORGANIZER;CN=' . ics_escape_text($organizerName) . ':mailto:' . $organizerEmail,
+        'ATTENDEE;CN=' . ics_escape_text($attendeeName) . ';RSVP=TRUE:mailto:' . $attendeeEmail,
+        'STATUS:CONFIRMED',
+        'SEQUENCE:0',
+        'END:VEVENT',
+        'END:VCALENDAR',
+    ];
+
+    $folded = array_map('ics_fold_line', $lines);
+
+    return implode("\r\n", $folded) . "\r\n";
+}
+
 $preferredReviewSummary = trim(($preferredReviewDate ?? '') . ($preferredReviewWindow ? ' · ' . $preferredReviewWindow : ''));
+
+$icsOrganizerEmail = getenv('SMTP_FROM') ?: 'support@protectourbrand.com';
+$icsOrganizerName = getenv('SMTP_FROM_NAME') ?: 'ProtectOurBrand Intake';
+$icsInvite = $email !== '' ? build_review_ics(
+    $preferredReviewDate,
+    $preferredReviewWindow,
+    $icsOrganizerEmail,
+    $icsOrganizerName,
+    $email,
+    $name !== '' ? $name : $email,
+    'ProtectOurBrand Brand Threat Scan Review',
+    'Preferred review window for ' . ($company !== '' ? $company : $name) . '. This is a preferred time, not a confirmed booking — our team will follow up to confirm.'
+) : null;
 
 $subject = 'ProtectOurBrand Case Review - ' . truncate_value($company !== '' ? $company : $name, 80);
 
@@ -389,6 +485,8 @@ try {
     $mail->addAddress($to);
     $mail->addCC('alex@dmcaforce.com');
     $mail->addCC('Julija@dmcaforce.com');
+    $mail->addCC('sumit@traffichaus.com');
+
     $mail->addReplyTo(
         truncate_value($email, 190) ?? $cfg['from'],
         truncate_value($name, 120) ?? ''
@@ -397,6 +495,10 @@ try {
     $mail->isHTML(true);
     $mail->Body      = $htmlBody;
     $mail->AltBody   = $textBody;
+
+    if ($icsInvite !== null) {
+        $mail->addStringAttachment($icsInvite, 'invite.ics', 'base64', 'text/calendar; method=REQUEST; charset=UTF-8');
+    }
 
     $mail->send();
 } catch (MailerException $e) {
@@ -483,6 +585,10 @@ if ($email !== '') {
         $customerMail->isHTML(true);
         $customerMail->Body     = $customerHtml;
         $customerMail->AltBody  = $customerText;
+
+        if ($icsInvite !== null) {
+            $customerMail->addStringAttachment($icsInvite, 'invite.ics', 'base64', 'text/calendar; method=REQUEST; charset=UTF-8');
+        }
 
         $customerMail->send();
     } catch (MailerException $e) {
