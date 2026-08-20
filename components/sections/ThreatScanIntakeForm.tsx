@@ -30,7 +30,7 @@ const initialData: IntakeData = {
   company: "",
   email: "",
   phone: "",
-  website: "",
+  website: "https://",
   brandNames: "",
   socialHandles: "",
   marketplaces: "",
@@ -113,6 +113,11 @@ export function ThreatScanIntakeForm() {
   function updateField(field: keyof IntakeData, value: string | boolean) {
     setData((previous) => ({ ...previous, [field]: value }));
     setErrors((previous) => ({ ...previous, [field]: undefined }));
+  }
+
+  function normalizeWebsiteValue(raw: string): string {
+    const stripped = raw.replace(/^(?:https?:\/\/)+/i, "");
+    return `https://${stripped}`;
   }
 
   function validateStep(stepIndex: number) {
@@ -231,7 +236,7 @@ export function ThreatScanIntakeForm() {
           <Field label="Name" id="name" value={data.name} error={errors.name} onChange={(value) => updateField("name", value)} autoComplete="name" />
           <Field label="Company" id="company" value={data.company} error={errors.company} onChange={(value) => updateField("company", value)} autoComplete="organization" />
           <Field label="Email" id="email" type="email" value={data.email} error={errors.email} onChange={(value) => updateField("email", value)} autoComplete="email" />
-          <Field label="Website" id="website" value={data.website} error={errors.website} onChange={(value) => updateField("website", value)} autoComplete="url" />
+          <Field label="Website" id="website" value={data.website} error={errors.website} onChange={(value) => updateField("website", normalizeWebsiteValue(value))} autoComplete="url" />
         </div>
         <Field label="Phone" id="phone" type="tel" value={data.phone} error={errors.phone} onChange={(value) => updateField("phone", value)} autoComplete="tel" required={false} />
       </div>
